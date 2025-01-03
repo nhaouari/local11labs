@@ -19,3 +19,9 @@ Try out basic text-to-speech generation in our interactive Colab notebook:
 ### Podcast Generation Demo
 Create multi-speaker podcasts using our podcast generation notebook:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1v8pGGGLGEPhIva0Jq-YcrL1XYuZm_hYA?usp=sharing)
+
+## TODO List
+- [ ] Add REST API endpoints for remote TTS generation
+- [ ] Implement streaming audio support
+- [ ] Create web interface for easy usage
+- [ ] Add Docker support for easy deployment
