@@ -57,3 +57,6 @@ for not you can clone it and run it.
 - [x] Create web interface for easy usage
 - [ ] Add Docker support for easy deployment
 
+
+## Screenshots :
+![screen_shot1](/ui-sceenshot1.png)
