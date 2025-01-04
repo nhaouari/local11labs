@@ -261,12 +261,8 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                 for entry in podcast_script:
                     if isinstance(entry, dict):
                         host = entry['host']
-                        # if host in podcast_host_voice_assignment_inputs:
-                            # host_voice_map[host] = {"voice": podcast_host_voice_assignment_inputs[host].value, "lang": choices[podcast_host_voice_assignment_inputs[host].label][0]}
-                        host_voice_map[host] = {"voice": podcast_host_voice_assignment_inputs[host], "lang": "a"}
-                        # else:
-                        #     raise ValueError(f"No voice assignment found for host: {host}")
-                
+                        host_voice_map[host] = {"voice": podcast_host_voice_assignment_inputs[host], "lang": podcast_host_voice_assignment_inputs[host][0]}
+                        
                 print("-"*50)
                 print("Host Voice Map")
                 pprint(host_voice_map)
