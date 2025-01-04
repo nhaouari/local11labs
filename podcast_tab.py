@@ -7,7 +7,7 @@ from src.long_speech_generation import generate_long_text_optimized, convert_to_
 from src.podcast_generation import merge_audio_files
 import os
 from pprint import pprint
-from utils import read_file_content
+from src.utils import read_file_content
 
 def create_podcast_dialogue_tab():
     with gr.Tab("Podcast Dialogue Generation"):
@@ -118,11 +118,7 @@ def merge_podcast_audio(audio_files, output_path):
         if not audio_files:
             raise ValueError("No audio files to merge")
             
-        # Validate all input files exist
-        for i,file in audio_files:
-            if not os.path.exists(file):
-                raise FileNotFoundError(f"Audio file not found: {file}")
-                
+            
         merge_audio_files(audio_files, output_file=output_path)
         return output_path
     except Exception as e:
@@ -204,12 +200,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                                 lambda x, h=host: update_host_voice_assignment_inputs(x, h),
                                 inputs=[podcast_host_voice_assignment_inputs[key]]
                         )
-                # for drop_down_element in voice_components:
-                #     drop_down_element.change(
-                #         update_host_voice_assignment_inputs,
-                #         inputs=[drop_down_element,host],
-                #     )
-                    
                     
                 #!======================================================================
                 #!======================================================================
@@ -333,16 +323,10 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
         )
 
 
-
-        # def send_script_to_audio(script_json):
-        #     voice_components = update_host_voice_assignment_inputs(script_json)
-        #     return gr.update(value=script_json), script_json, gr.Column(*voice_components)
-        
         load_hosters_button.click(
             fn=on_script_change,
             inputs=[podcast_script_json_input],
             outputs=[ hosts_state]
-            # outputs=[podcast_host_voice_assignment_display, hosts_state]
         )
 
         
@@ -352,7 +336,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                 fn=on_script_change,
                 inputs=[podcast_script_json_input],
                 outputs=[hosts_state]
-                # outputs=[podcast_host_voice_assignment_display,hosts_state]
             )
     return generate_podcast_audio_button, podcast_script_json_input, podcast_host_voice_assignment_inputs, podcast_model_dropdown, podcast_speed_slider, podcast_device_dropdown, podcast_audio_output, podcast_audio_status_output, load_hosters_button
 

@@ -29,7 +29,7 @@ from src.podcast_generation import generate_audio
 # Import the Tab UI components
 from podcast_tab import create_podcast_tab
 from text_to_speech_tab import create_text_to_speech_tab
-from utils import read_file_content
+from src.utils import read_file_content
 
 
 

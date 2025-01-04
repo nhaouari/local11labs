@@ -1,5 +1,5 @@
 import gradio as gr
-from utils import read_file_content
+from src.utils import read_file_content
 
 def create_text_to_speech_tab(models_list, choices, device_options, generate_audio_enhanced, update_input_visibility):
     with gr.Tab("Text-to-Speech"):
