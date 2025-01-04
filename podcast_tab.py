@@ -89,7 +89,6 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
             voicepack=voice_data,
             lang=lang,
             output_dir=output_dir,
-            filename=f"segment_{i}",
             verbose=False
         )
         mp3_path = convert_to_mp3(wav_path)
@@ -216,14 +215,14 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                 if not podcast_script_json or "script" not in podcast_script_json:
                     raise ValueError("Please provide a podcast script.")
 
-                podcast_script = podcast_script_json["script"]
+                podcast_script = podcast_script_json["script"]["script"]
                 host_voice_map = {}
                 for entry in podcast_script:
                     if isinstance(entry, dict):
                         host = entry['host']
                         # if host in podcast_host_voice_assignment_inputs:
                             # host_voice_map[host] = {"voice": podcast_host_voice_assignment_inputs[host].value, "lang": choices[podcast_host_voice_assignment_inputs[host].label][0]}
-                        host_voice_map[host] = {"voice": podcast_host_voice_assignment_inputs[host].value, "lang": "a"}
+                        host_voice_map[host] = {"voice": podcast_host_voice_assignment_inputs[host], "lang": "a"}
                         # else:
                         #     raise ValueError(f"No voice assignment found for host: {host}")
                 
