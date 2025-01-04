@@ -212,5 +212,5 @@ with gr.Blocks() as app:
 
 # Run the app
 if __name__ == "__main__":
-    app.launch(share=False, debug=True)
+    app.launch(share=True, debug=True)
     
