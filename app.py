@@ -250,7 +250,7 @@ with gr.Blocks() as app:
             )
             process_type = gr.Checkbox(
                 label="Process as Long Text",
-                value=False
+                value=True 
             )
             generate_button = gr.Button("Generate")
 
