@@ -81,25 +81,53 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
         voice = voice_config['voice']
         lang = voice_config['lang']
 
-        model, voice_data = load_model_and_voice(selected_device, model_name, voice)
-        wav_path = os.path.join(output_dir, f"segment_{i}.wav")
-        audio, _, _ = generate_long_text_optimized(
-            model=model,
-            text=dialogue,
-            voicepack=voice_data,
-            lang=lang,
-            output_dir=output_dir,
-            verbose=False
-        )
-        mp3_path = convert_to_mp3(wav_path)
-        audio_files.append(mp3_path)
+        model, voice_data = load_model_and_voice(selected_device, model_name, voice)        
+        try:
+            # Generate audio and explicitly save WAV file
+            audio, phonemes, wav_path = generate_long_text_optimized(
+                model=model,
+                text=dialogue,
+                voicepack=voice_data,
+                lang=lang,
+                output_dir=output_dir,
+                verbose=False
+            )
+            
+            # Ensure WAV file exists before converting
+            #the merge func seems using wav not mp3 , so ill let the convert after the merge
+            if os.path.exists(wav_path):
+                audio_files.append((i,wav_path))                
+                # mp3_path = convert_to_mp3(wav_path)
+                # if mp3_path and os.path.exists(mp3_path):
+                #     audio_files.append((i,mp3_path)) #this takes tube i,mp3_path cz for loop in the merge function  takes i, (index, file) from enumerate so i add it to fix toomany value too many values to unpack (expected 2) etc..
+                # else:
+                #     print(f"Failed to create MP3 for segment {i}")
+            else:
+                print(f"WAV file not found for segment {i}: {wav_path}")
+                
+        except Exception as e:
+            print(f"Error processing segment {i}: {str(e)}")
+            continue
+
     return audio_files
 
 
 def merge_podcast_audio(audio_files, output_path):
     """Merges the generated audio segments into a single podcast file."""
-    merge_audio_files(audio_files, output_file=output_path)
-    return output_path
+    try:
+        if not audio_files:
+            raise ValueError("No audio files to merge")
+            
+        # Validate all input files exist
+        for i,file in audio_files:
+            if not os.path.exists(file):
+                raise FileNotFoundError(f"Audio file not found: {file}")
+                
+        merge_audio_files(audio_files, output_file=output_path)
+        return output_path
+    except Exception as e:
+        print(f"Error MPA: {str(e)}")
+        return None
 
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
@@ -157,20 +185,32 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                                 value="af",
                                 elem_id=f"voice_dropdown_{host}"
                             )
-                            def update_host_voice_assignment_inputs(x):
-                                print("-"*50)
-                                print("Before")
-                                pprint(podcast_host_voice_assignment_inputs)
-                                print("-"*50)
-                                print("After")
-                                podcast_host_voice_assignment_inputs[host] = x
-                                pprint(podcast_host_voice_assignment_inputs)
-                                print("-"*50)
-                            dropdown.change(
-                                update_host_voice_assignment_inputs,
-                                inputs=[dropdown],
-                            )
-                            voice_components.append(dropdown)
+                            # voice_components.append(dropdown)
+                            podcast_host_voice_assignment_inputs[f"dropdown_element_{host}"] = dropdown
+                              
+                    def update_host_voice_assignment_inputs(x,host):
+                        print("-"*50)
+                        print("Before")
+                        pprint(podcast_host_voice_assignment_inputs)
+                        print("-"*50)
+                        print("After")
+                        podcast_host_voice_assignment_inputs[host] = x
+                        pprint(podcast_host_voice_assignment_inputs)
+                        print("-"*50)
+                    for key in podcast_host_voice_assignment_inputs:
+                        if key.startswith('dropdown_element_'):
+                            host = key.replace('dropdown_element_', '')
+                            podcast_host_voice_assignment_inputs[key].change(
+                                lambda x, h=host: update_host_voice_assignment_inputs(x, h),
+                                inputs=[podcast_host_voice_assignment_inputs[key]]
+                        )
+                # for drop_down_element in voice_components:
+                #     drop_down_element.change(
+                #         update_host_voice_assignment_inputs,
+                #         inputs=[drop_down_element,host],
+                #     )
+                    
+                    
                 #!======================================================================
                 #!======================================================================
                 #!======================================================================
@@ -196,6 +236,7 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                         hosts_g = hosts
                         for host in hosts:
                             podcast_host_voice_assignment_inputs[host] = "af" #seting default values
+                            podcast_host_voice_assignment_inputs[f"dropdown_element_{host}"] = None #seting default values
                         
                     return hosts_g
                 
