@@ -1,10 +1,9 @@
+import sys
+import os
 import torch
 import gradio as gr
-import os
-import re
-import sys
-from src.long_speech_generation import generate_long_text_optimized
 import tempfile
+
 
 kokoro_path = os.path.abspath('Kokoro-82M')
 print(f"kokoro_path :{kokoro_path}")
@@ -18,7 +17,24 @@ except ImportError:
     print("Kokoro not found. Please install the Kokoro-82M package.")
     generate = None
 
-VOICEPACK_DIR = os.path.join(kokoro_path, "voices")  # Ensure this directory exists in your local_model_path
+
+# Add the 'src' directory to the Python path
+src_path = os.path.abspath('src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+from src.long_speech_generation import generate_long_text_optimized
+from src.podcast_generation import generate_audio
+
+# Import the Tab UI components
+from podcast_tab import create_podcast_tab
+from text_to_speech_tab import create_text_to_speech_tab
+from utils import read_file_content
+
+
+
+
+VOICEPACK_DIR = os.path.join(kokoro_path, "voices")
 
 MODELS_LIST = {
     "v0_19-full-fp32": os.path.join(kokoro_path, "kokoro-v0_19.pth"),
@@ -57,6 +73,7 @@ def normalize_text(text):
     return text
 
 SAMPLE_RATE = 24000
+
 def load_model_and_voice(selected_device, model_path, voice):
     global MODEL, VOICES, MODELS_LIST, MODEL_NAME, MODEL_DEVICE
     try:
@@ -72,7 +89,6 @@ def load_model_and_voice(selected_device, model_path, voice):
         else:
             device = 'cpu'
     except Exception as e:
-        # print(f"Error: {e}")
         print("CUDA Error is not available. Using CPU instead.")
         device = 'cpu'
 
@@ -157,140 +173,44 @@ def generate_audio_enhanced(
         print(f"Error in audio generation: {str(e)}")
         return None, str(e), None
 
-#------
 def update_input_visibility(choice):
     return {
         text_input: gr.update(visible=choice == "Direct Text"),
         file_input: gr.update(visible=choice == "File Upload")
     }
 
-def read_file_content(file):
-    if file is None:
-        return ""
-    with open(file, 'r', encoding='utf-8') as f:
-        return f.read()
-
-def generate_wrapper(text, file, input_type, model_name, voice_name, speed, selected_device, is_long_text):
-    try:
-        # Determine input text
-        if input_type == "File Upload" and file is not None:
-            text = read_file_content(file)
-        elif input_type == "Direct Text" and not text:
-          text = ""
-        elif input_type == "File Upload" and file is None:
-          text = ""
-
-        # Update status
-        gr.update(value="Processing...")
-
-        # Generate audio
-        audio_result, phonemes, wav_path = generate_audio_enhanced(
-            text=text,
-            model_name=model_name,
-            voice_name=voice_name,
-            speed=speed,
-            selected_device=selected_device,
-            is_long_text=is_long_text
-        )
-
-        status = "Generation complete!"
-        return audio_result, phonemes, status
-
-    except Exception as e:
-        error_msg = f"Error: {str(e)}"
-        print(error_msg)
-        return None, error_msg, error_msg
 
 # Gradio Interface
 with gr.Blocks() as app:
     gr.Markdown("""## Local11labs Text-to-Speech Webui
                 This is a simple web interface for the Kokoro-82M text-to-speech model.""")
-    with gr.Row():
-        with gr.Column():
-            # Text input options
-            input_type = gr.Radio(
-                choices=["Direct Text", "File Upload"],
-                value="Direct Text",
-                label="Input Type"
-            )
-            text_input = gr.Textbox(
-                label="Input Text",
-                placeholder="Enter text here...",
-                visible=True
-            )
-            file_input = gr.File(
-                label="Upload Text File",
-                visible=False
-            )
 
-            # Model and voice selection
-            model_dropdown = gr.Dropdown(
-                list(MODELS_LIST.items()),
-                label="Model",
-                value=os.path.join(kokoro_path, "fp16/kokoro-v0_19-half.pth"),
-            )
-            voice_dropdown = gr.Dropdown(
-                list(CHOICES.items()),
-                label="Voice",
-                value="af"
-            )
-
-            # Generation settings
-            speed_slider = gr.Slider(
-                minimum=0.5,
-                maximum=2.0,
-                value=1.0,
-                step=0.1,
-                label="Speed"
-            )
-            device_dropdown = gr.Dropdown(
-                device_options,
-                label="Device",
-                value="auto"
-            )
-            process_type = gr.Checkbox(
-                label="Process as Long Text",
-                value=True 
-            )
-            generate_button = gr.Button("Generate")
-
-        with gr.Column():
-            # Output components
-            audio_output = gr.Audio(label="Output Audio")
-            text_output = gr.Textbox(label="Output Phonemes")
-            status_output = gr.Textbox(label="Status", value="Ready")
-
-    # Event handlers
-    input_type.change(
-        update_input_visibility,
-        inputs=[input_type],
-        outputs=[text_input, file_input]
+    # Text-to-Speech Tab
+    (input_type, text_input, file_input, model_dropdown, voice_dropdown,
+     speed_slider, device_dropdown, process_type, generate_button,
+     audio_output, text_output, status_output) = create_text_to_speech_tab(
+        models_list=MODELS_LIST,
+        choices=CHOICES,
+        device_options=device_options,
+        generate_audio_enhanced=generate_audio_enhanced,
+        update_input_visibility=update_input_visibility,
+         
     )
-    file_input.change(
-        lambda file: text_input.update(value=read_file_content(file.name) if file else ""),
-        inputs=[file_input],
-        outputs=[text_input]
-    )
-    
-    generate_button.click(
-        generate_wrapper,
-        inputs=[
-            text_input,
-            file_input,
-            input_type,
-            model_dropdown,
-            voice_dropdown,
-            speed_slider,
-            device_dropdown,
-            process_type
-        ],
-        outputs=[
-            audio_output,
-            text_output,
-            status_output
-        ]
+
+    # Podcast Tab
+    (generate_podcast_script_button, send_to_audio_input_button, podcast_script_json_output,
+    podcast_dialogue_status_output, podcast_script_json_input, podcast_host_voice_assignment_inputs,
+    podcast_model_dropdown, podcast_speed_slider, podcast_device_dropdown, generate_podcast_audio_button,
+    podcast_audio_output, podcast_audio_status_output) = create_podcast_tab(
+        models_list=MODELS_LIST,
+        choices=CHOICES,
+        device_options=device_options,
+        kokoro_path=kokoro_path,
+        load_model_and_voice=load_model_and_voice,
+         
     )
 
 # Run the app
 if __name__ == "__main__":
-    app.launch(share=True, debug=True)
+    app.launch(share=False, debug=True)
+    
