@@ -3,7 +3,7 @@ import gradio as gr
 import os
 import re
 import sys
-from src.long_speech_generation import generate_long_text_optimized  
+from src.long_speech_generation import generate_long_text_optimized
 import tempfile
 
 kokoro_path = os.path.abspath('Kokoro-82M')
@@ -18,7 +18,6 @@ except ImportError:
     print("Kokoro not found. Please install the Kokoro-82M package.")
     generate = None
 
-
 VOICEPACK_DIR = os.path.join(kokoro_path, "voices")  # Ensure this directory exists in your local_model_path
 
 MODELS_LIST = {
@@ -26,7 +25,7 @@ MODELS_LIST = {
     "v0_19-half-fp16": os.path.join(kokoro_path, "fp16/kokoro-v0_19-half.pth"),
 }
 
-# Available voices 
+# Available voices
 CHOICES = {
     '🇺🇸 🚺 American Female ⭐': 'af',
     '🇺🇸 🚺 Bella ⭐': 'af_bella',
@@ -39,7 +38,7 @@ CHOICES = {
     '🇬🇧 🚺 British Female isabella': 'bf_isabella',
     '🇬🇧 🚹 British Male george': 'bm_george',
     '🇬🇧 🚹 British Male lewis': 'bm_lewis',
-    
+
 }
 
 # Device Selection
@@ -60,7 +59,7 @@ def normalize_text(text):
 SAMPLE_RATE = 24000
 def load_model_and_voice(selected_device, model_path, voice):
     global MODEL, VOICES, MODELS_LIST, MODEL_NAME, MODEL_DEVICE
-    try :
+    try:
         if selected_device == "auto":
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         elif selected_device == "cuda":
@@ -76,11 +75,11 @@ def load_model_and_voice(selected_device, model_path, voice):
         # print(f"Error: {e}")
         print("CUDA Error is not available. Using CPU instead.")
         device = 'cpu'
-    
+
     # Check if we need to reload the model
     should_reload = (
         MODEL is None or
-        MODEL_DEVICE != device or 
+        MODEL_DEVICE != device or
         MODEL_NAME != model_path
     )
 
@@ -91,7 +90,7 @@ def load_model_and_voice(selected_device, model_path, voice):
         print(f"Loaded model {model_path} on {device}")
 
     if voice not in VOICES:
-        VOICES[voice] = torch.load(os.path.join(VOICEPACK_DIR, f'{voice}.pt'), weights_only=True).to(device)
+        VOICES[voice] = torch.load(os.path.join(VOICEPACK_DIR, f'{voice}.pt'), map_location=device)
         print(f'Loaded voice: {voice} on {device}')
 
     return MODEL, VOICES[voice]
@@ -113,25 +112,21 @@ def process_long_text(text, model, voice_data, lang, speed, output_dir="output")
         return None, str(e), None
 
 def generate_audio_enhanced(
-    text, 
-    model_name, 
-    voice_name, 
-    speed, 
-    selected_device, 
+    text,
+    model_name,
+    voice_name,
+    speed,
+    selected_device,
     is_long_text=False,
     output_dir="output"
 ):
     """Enhanced audio generation with support for long text and podcasts."""
     if not text.strip():
         return (None, "", None)
-    
-    # Extract voice and model information
-    voice = voice_name[1] if isinstance(voice_name, tuple) else voice_name
-    model_path = model_name[1] if isinstance(model_name, tuple) else model_name
-    
+
     # Load model and voice
-    model, voice_data = load_model_and_voice(selected_device, model_path, voice)
-    
+    model, voice_data = load_model_and_voice(selected_device, model_name, voice_name)
+
     try:
         if is_long_text:
             # Use optimized processing for long text
@@ -139,7 +134,7 @@ def generate_audio_enhanced(
                 text=text,
                 model=model,
                 voice_data=voice_data,
-                lang=voice[0],
+                lang=voice_name[0],
                 speed=speed,
                 output_dir=output_dir
             )
@@ -150,9 +145,9 @@ def generate_audio_enhanced(
                 text=text,
                 voicepack=voice_data,
                 speed=speed,
-                lang=voice[0]
+                lang=voice_name[0]
             )
-            
+
             # Save the audio to a temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
                 import soundfile as sf
@@ -162,18 +157,17 @@ def generate_audio_enhanced(
         print(f"Error in audio generation: {str(e)}")
         return None, str(e), None
 
-
 #------
 def update_input_visibility(choice):
     return {
-        text_input: choice == "Direct Text",
-        file_input: choice == "File Upload"
+        text_input: gr.update(visible=choice == "Direct Text"),
+        file_input: gr.update(visible=choice == "File Upload")
     }
-    
+
 def read_file_content(file):
     if file is None:
         return ""
-    with open(file.name, 'r', encoding='utf-8') as f:
+    with open(file, 'r', encoding='utf-8') as f:
         return f.read()
 
 def generate_wrapper(text, file, input_type, model_name, voice_name, speed, selected_device, is_long_text):
@@ -181,10 +175,14 @@ def generate_wrapper(text, file, input_type, model_name, voice_name, speed, sele
         # Determine input text
         if input_type == "File Upload" and file is not None:
             text = read_file_content(file)
-        
+        elif input_type == "Direct Text" and not text:
+          text = ""
+        elif input_type == "File Upload" and file is None:
+          text = ""
+
         # Update status
         gr.update(value="Processing...")
-        
+
         # Generate audio
         audio_result, phonemes, wav_path = generate_audio_enhanced(
             text=text,
@@ -194,15 +192,15 @@ def generate_wrapper(text, file, input_type, model_name, voice_name, speed, sele
             selected_device=selected_device,
             is_long_text=is_long_text
         )
-        
+
         status = "Generation complete!"
         return audio_result, phonemes, status
-        
+
     except Exception as e:
         error_msg = f"Error: {str(e)}"
         print(error_msg)
         return None, error_msg, error_msg
-    
+
 # Gradio Interface
 with gr.Blocks() as app:
     gr.Markdown("""## Local11labs Text-to-Speech Webui
@@ -224,21 +222,19 @@ with gr.Blocks() as app:
                 label="Upload Text File",
                 visible=False
             )
-            
+
             # Model and voice selection
             model_dropdown = gr.Dropdown(
                 list(MODELS_LIST.items()),
                 label="Model",
-                # value=("v0_19-full-fp32", "kokoro-v0_19.pth")
                 value=os.path.join(kokoro_path, "fp16/kokoro-v0_19-half.pth"),
             )
             voice_dropdown = gr.Dropdown(
                 list(CHOICES.items()),
                 label="Voice",
                 value="af"
-                # value=("🇺🇸 🚺 American Female ⭐", "af")
             )
-            
+
             # Generation settings
             speed_slider = gr.Slider(
                 minimum=0.5,
@@ -257,19 +253,23 @@ with gr.Blocks() as app:
                 value=False
             )
             generate_button = gr.Button("Generate")
-            
+
         with gr.Column():
             # Output components
             audio_output = gr.Audio(label="Output Audio")
             text_output = gr.Textbox(label="Output Phonemes")
             status_output = gr.Textbox(label="Status", value="Ready")
-            
-    
+
     # Event handlers
     input_type.change(
         update_input_visibility,
         inputs=[input_type],
         outputs=[text_input, file_input]
+    )
+    file_input.change(
+        lambda file: text_input.update(value=read_file_content(file.name) if file else ""),
+        inputs=[file_input],
+        outputs=[text_input]
     )
     
     generate_button.click(
