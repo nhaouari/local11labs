@@ -10,8 +10,12 @@ Local11Labs is a powerful text-to-speech and podcast generation tool powered by 
 - 🔊 Professional audio quality with natural pauses and transitions
 - 🚀 Easy to use with minimal setup required
 
+
+
+
+
 ## Quick Start
-![Demo Video](./demos/demo_podcast.mp4)
+https://github.com/user-attachments/assets/3bc23c3f-86f0-4aad-a34a-6a16cc3aa80a
 ### Text-to-Speech Demo
 Try out basic text-to-speech generation in our interactive Colab notebook:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Mi3IewrWoHunNEmPXcItCLom6Je8TeUw?usp=sharing)
