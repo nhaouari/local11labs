@@ -1,5 +1,5 @@
 import gradio as gr
-import tempfile
+
 import uuid
 import json
 from podcast_generator import generate_podcast_script
@@ -263,11 +263,14 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
                 print("-"*50)
                 
                 
-                temp_dir = tempfile.mkdtemp()
+                output_dir = os.path.abspath('output/merges')
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir, exist_ok=True)
+                      
                 audio_files = generate_podcast_audio_segments(
-                    podcast_script, host_voice_map, model, speed, device, temp_dir, load_model_and_voice,process_type
+                    podcast_script, host_voice_map, model, speed, device, output_dir, load_model_and_voice,process_type
                 )
-                output_file = os.path.join(temp_dir, f"podcast_{uuid.uuid4()}.mp3")
+                output_file = os.path.join(output_dir, f"podcast_{uuid.uuid4()}.mp3")
                 podcast_audio_path = merge_podcast_audio(audio_files, output_file)
 
                 return podcast_audio_path, "Podcast audio generation complete!"
