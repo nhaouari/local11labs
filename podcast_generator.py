@@ -2,27 +2,32 @@ import google.generativeai as genai
 import json
 import os
 
-def generate_podcast_script(api_key, news_content, host1_name="Noureddine", host2_name="Noura"):
-    """Generates a podcast script using the Gemini API with customizable host names."""
+def generate_podcast_script(api_key, news_content, host_names=["Noureddine", "Noura"]):
+  """Generates a podcast script using the Gemini API with a dynamic list of host names."""
+  if len(host_names) < 2:
+    raise ValueError("At least two host names are required")
 
-    genai.configure(api_key=api_key)
+  genai.configure(api_key=api_key)
 
-    generation_config = {
-        "temperature": 0.9,
-        "top_p": 0.95,
-        "max_output_tokens": 8192,
-        "response_mime_type": "application/json",
-    }
+  generation_config = {
+    "temperature": 0.9,
+    "top_p": 0.95,
+    "max_output_tokens": 8192,
+    "response_mime_type": "application/json",
+  }
 
-    gemini_model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash-exp",  # Or use a different suitable model
-        generation_config=generation_config,
-    )
+  gemini_model = genai.GenerativeModel(
+    model_name="gemini-2.0-flash-exp",
+    generation_config=generation_config,
+  )
 
-    chat_session = gemini_model.start_chat(history=[])
+  chat_session = gemini_model.start_chat(history=[])
 
-    prompt = f"""
-You are an AI assistant tasked with creating a podcast script about recent developments in artificial intelligence. The script should be engaging, informative, and structured as a conversation between two hosts: {host1_name} and {host2_name}.
+  # Create host introductions dynamically
+  host_intro = ", ".join(host_names[:-1]) + f" and {host_names[-1]}"
+
+  prompt = f"""
+You are an AI assistant tasked with creating a podcast script about recent developments in artificial intelligence. The script should be engaging, informative, and structured as a conversation between the following hosts: {host_intro}.
 
 Here is the AI news content to base the podcast on:
 
@@ -46,7 +51,7 @@ In your content breakdown:
 11. Create a brief outline of the podcast structure, including the order of topics and key points to cover.
 
 After your content breakdown, generate a podcast script that follows these guidelines:
-1. Structure the script as a conversation between {host1_name} and {host2_name}.
+1. Structure the script as a conversation between multiple hosts, rotating between them.
 2. Begin with a brief introduction to the AI news roundup.
 3. Cover the main topics identified in your analysis, alternating between hosts.
 4. Include the impactful excerpts and your analysis of them in the conversation.
@@ -57,30 +62,30 @@ After your content breakdown, generate a podcast script that follows these guide
 9. Keep the tone conversational and engaging throughout.
 10. Make sure the content and dialogue are clean of any special characters and ready to be read by a TTS.
 
-Format the script as a list of JSON objects, where each object represents a dialogue turn with "host" and "dialogue" keys. Ensure that the hosts alternate throughout the script.
+Format the script as a list of JSON objects, where each object represents a dialogue turn with "host" and "dialogue" keys. Ensure that the hosts rotate throughout the script.
 
 Example structure (do not use this content, it's just to illustrate the format):
 {{
   "content breakdown": [
-    {{
-      "step":"",
-      "content": ""
-    }}
-    ...
+  {{
+    "step":"",
+    "content": ""
+  }}
+  ...
   ],
   "script":[
   {{
-        "host": "{host1_name}",
-        "dialogue": "Welcome to our AI news roundup. Today, we have some exciting developments to discuss. What's first on our list, {host2_name}?"
-    }},
-    ...
+    "host": "{host_names[0]}",
+    "dialogue": "Welcome to our AI news roundup. Today, we have some exciting developments to discuss."
+  }},
+  ...
 ]
 }}
 
-Remember to maintain this structure throughout the entire script, alternating between {host1_name} and {host2_name}, and covering all the key points from your content breakdown.
+Remember to maintain this structure throughout the entire script, rotating between all hosts, and covering all the key points from your content breakdown.
 """
 
-    response = chat_session.send_message(prompt)
-    podcast_data = json.loads(response.text)
+  response = chat_session.send_message(prompt)
+  podcast_data = json.loads(response.text)
 
-    return podcast_data
+  return podcast_data

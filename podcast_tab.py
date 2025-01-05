@@ -43,7 +43,7 @@ def create_podcast_dialogue_tab():
 
                 hosts = [h.strip() for h in host_names_str.split(',')]
                 news_content = read_file_content(content_file)
-                podcast_script_data = generate_podcast_script(api_key, news_content, hosts[0], hosts[1] if len(hosts) > 1 else None) # Assuming 2 hosts
+                podcast_script_data = generate_podcast_script(api_key, news_content,hosts)
                 return {"script": podcast_script_data}, "Podcast dialogue generation complete!"
             except Exception as e:
                 return None, str(e)
