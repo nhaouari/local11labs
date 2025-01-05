@@ -25,11 +25,11 @@ if src_path not in sys.path:
 
 from src.long_speech_generation import generate_long_text_optimized
 from src.podcast_generation import generate_audio
+from src.utils import read_file_content, process_long_text, generate_audio_enhanced
 
 # Import the Tab UI components
 from podcast_tab import create_podcast_tab
 from text_to_speech_tab import create_text_to_speech_tab
-from src.utils import read_file_content
 
 
 
@@ -111,68 +111,6 @@ def load_model_and_voice(selected_device, model_path, voice):
 
     return MODEL, VOICES[voice]
 
-def process_long_text(text, model, voice_data, lang, speed, output_dir="output"):
-    """Process longer text with optimized generation."""
-    try:
-        audio, phonemes, wav_path = generate_long_text_optimized(
-            model=model,
-            text=text,
-            voicepack=voice_data,
-            lang=lang,
-            output_dir=output_dir,
-            verbose=True
-        )
-        return (SAMPLE_RATE, audio), phonemes, wav_path
-    except Exception as e:
-        print(f"Error in long text processing: {str(e)}")
-        return None, str(e), None
-
-def generate_audio_enhanced(
-    text,
-    model_name,
-    voice_name,
-    speed,
-    selected_device,
-    is_long_text=False,
-    output_dir="output"
-):
-    """Enhanced audio generation with support for long text and podcasts."""
-    if not text.strip():
-        return (None, "", None)
-
-    # Load model and voice
-    model, voice_data = load_model_and_voice(selected_device, model_name, voice_name)
-
-    try:
-        if is_long_text:
-            # Use optimized processing for long text
-            return process_long_text(
-                text=text,
-                model=model,
-                voice_data=voice_data,
-                lang=voice_name[0],
-                speed=speed,
-                output_dir=output_dir
-            )
-        else:
-            # Use standard processing for short text
-            audio, phonemes = generate(
-                model=model,
-                text=text,
-                voicepack=voice_data,
-                speed=speed,
-                lang=voice_name[0]
-            )
-
-            # Save the audio to a temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
-                import soundfile as sf
-                sf.write(temp_file.name, audio, SAMPLE_RATE)
-                return (SAMPLE_RATE, audio), phonemes, temp_file.name
-    except Exception as e:
-        print(f"Error in audio generation: {str(e)}")
-        return None, str(e), None
-
 def update_input_visibility(choice):
     return {
         text_input: gr.update(visible=choice == "Direct Text"),
@@ -192,8 +130,8 @@ with gr.Blocks() as app:
         models_list=MODELS_LIST,
         choices=CHOICES,
         device_options=device_options,
-        generate_audio_enhanced=generate_audio_enhanced,
         update_input_visibility=update_input_visibility,
+        load_model_and_voice=load_model_and_voice,
          
     )
 
@@ -207,10 +145,10 @@ with gr.Blocks() as app:
         device_options=device_options,
         kokoro_path=kokoro_path,
         load_model_and_voice=load_model_and_voice,
+        
          
     )
 
 # Run the app
 if __name__ == "__main__":
     app.launch(share=True, debug=True)
-    

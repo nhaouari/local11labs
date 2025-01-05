@@ -5,9 +5,9 @@ import json
 from podcast_generator import generate_podcast_script
 from src.long_speech_generation import generate_long_text_optimized, convert_to_mp3
 from src.podcast_generation import merge_audio_files
+from src.utils import read_file_content, generate_audio_enhanced
 import os
 from pprint import pprint
-from src.utils import read_file_content
 
 def create_podcast_dialogue_tab():
     with gr.Tab("Podcast Dialogue Generation"):
@@ -84,13 +84,25 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
         model, voice_data = load_model_and_voice(selected_device, model_name, voice)        
         try:
             # Generate audio and explicitly save WAV file
-            audio, phonemes, wav_path = generate_long_text_optimized(
-                model=model,
+            # audio, phonemes, wav_path = generate_long_text_optimized(
+            #     model=model,
+            #     text=dialogue,
+            #     voicepack=voice_data,
+            #     lang=lang,
+            #     output_dir=output_dir,
+            #     verbose=False
+            # )
+            
+            audio, phonemes, wav_path = generate_audio_enhanced(
                 text=dialogue,
-                voicepack=voice_data,
-                lang=lang,
-                output_dir=output_dir,
-                verbose=False
+                model_name=model_name,
+                voice_name=voice,
+                selected_device=selected_device,
+                speed=speed,
+                is_long_text=False,
+                load_model_and_voice=load_model_and_voice,
+                
+                
             )
             
             # Ensure WAV file exists before converting
@@ -111,7 +123,6 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
 
     return audio_files
 
-
 def merge_podcast_audio(audio_files, output_path):
     """Merges the generated audio segments into a single podcast file."""
     try:
@@ -130,7 +141,7 @@ def merge_podcast_audio(audio_files, output_path):
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
 
-def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, load_model_and_voice ):
+def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,load_model_and_voice ):
     
     with gr.Tab("Podcast Audio Generation"):
         gr.Markdown("Generate audio for the podcast dialogue.")
@@ -138,7 +149,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
             with gr.Column():
                 podcast_script_input_source = gr.Radio(
                     choices=["From Previous Tab", "Upload File", "Edit Here"],
-                    # value="From Previous Tab",
                     value="Upload File",
                     label="Podcast Script Source"
                 )
@@ -146,7 +156,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                 podcast_script_textbox = gr.Code(label="Edit Podcast Script (JSON)", language="json", visible=False)
                 podcast_script_file_input = gr.File(label="Upload Podcast Script (JSON)", visible=True)
 
-                podcast_host_voice_assignment_display = gr.Column()
 
                 podcast_model_dropdown = gr.Dropdown(
                     list(models_list.items()),
@@ -165,9 +174,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                     label="Device",
                     value="auto"
                 )
-                #! --------------------------------------------
-                #! --------------------------------------------
-                #! --------------------------------------------
                 hosts_state =gr.State([])
                 voice_components=[]
                 @gr.render(inputs=hosts_state)
@@ -181,7 +187,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                                 value="af",
                                 elem_id=f"voice_dropdown_{host}"
                             )
-                            # voice_components.append(dropdown)
                             podcast_host_voice_assignment_inputs[f"dropdown_element_{host}"] = dropdown
                               
                     def update_host_voice_assignment_inputs(x,host):
@@ -201,9 +206,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                                 inputs=[podcast_host_voice_assignment_inputs[key]]
                         )
                     
-                #!======================================================================
-                #!======================================================================
-                #!======================================================================
                 podcast_host_voice_assignment_inputs = {}
                 
                     
@@ -214,8 +216,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
 
                     if podcast_script_json and "script" in podcast_script_json:
                         script = podcast_script_json["script"]["script"]
-                        # print("loadedScript:")
-                        # pprint(script)
                         hosts = sorted(
                             list(
                                 set(
@@ -261,7 +261,7 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, 
                 
                 temp_dir = tempfile.mkdtemp()
                 audio_files = generate_podcast_audio_segments(
-                    podcast_script, host_voice_map, model, speed, device, temp_dir, load_model_and_voice
+                    podcast_script, host_voice_map, model, speed, device, temp_dir, load_model_and_voice,
                 )
                 output_file = os.path.join(temp_dir, f"podcast_{uuid.uuid4()}.mp3")
                 podcast_audio_path = merge_podcast_audio(audio_files, output_file)
@@ -356,7 +356,7 @@ def create_podcast_tab(models_list, choices, device_options, kokoro_path, load_m
       
         generate_podcast_script_button, send_to_audio_input_button, podcast_script_json_output, podcast_dialogue_status_output = create_podcast_dialogue_tab()
 
-        generate_podcast_audio_button, podcast_script_json_input, podcast_host_voice_assignment_inputs, podcast_model_dropdown, podcast_speed_slider, podcast_device_dropdown, podcast_audio_output, podcast_audio_status_output, load_hosters_button = create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, load_model_and_voice, )
+        generate_podcast_audio_button, podcast_script_json_input, podcast_host_voice_assignment_inputs, podcast_model_dropdown, podcast_speed_slider, podcast_device_dropdown, podcast_audio_output, podcast_audio_status_output, load_hosters_button = create_podcast_audio_tab(models_list, choices, device_options, kokoro_path, load_model_and_voice )
 
         send_to_audio_input_button.click(
             lambda script_json: (gr.update(value=script_json), script_json),

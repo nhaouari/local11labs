@@ -1,7 +1,7 @@
 import gradio as gr
-from src.utils import read_file_content
+from src.utils import read_file_content, generate_audio_enhanced
 
-def create_text_to_speech_tab(models_list, choices, device_options, generate_audio_enhanced, update_input_visibility):
+def create_text_to_speech_tab(models_list, choices, device_options, update_input_visibility,load_model_and_voice):
     with gr.Tab("Text-to-Speech"):
         with gr.Row():
             with gr.Column():
@@ -88,7 +88,8 @@ def create_text_to_speech_tab(models_list, choices, device_options, generate_aud
                     voice_name=voice_name,
                     speed=speed,
                     selected_device=selected_device,
-                    is_long_text=is_long_text
+                    is_long_text=is_long_text,
+                    load_model_and_voice=load_model_and_voice
                 )
 
                 status = "Generation complete!"
