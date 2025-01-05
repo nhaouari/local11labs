@@ -10,6 +10,18 @@ Local11Labs is a powerful text-to-speech and podcast generation tool powered by 
 - 🔊 Professional audio quality with natural pauses and transitions
 - 🚀 Easy to use with minimal setup required
 
+## Performance (Colab T4 GPU FP16)
+
+Local11Labs deliver exceptional performance, ensuring fast and efficient text-to-speech (TTS) and podcast generation without compromising quality. Below are the key performance metrics measured using a Colab T4 GPU with FP16 precision:
+
+| **Metric**               | **Value**                     |
+|--------------------------|-------------------------------|
+| **Total processing time**| 27.17 seconds                 |
+| **Processing speed**     | 788.0 characters/second       |
+| **Text length**          | 21,414 characters             |
+| **Audio length**         | 1,271.9 seconds (21.2 minutes)|
+| **Average speaking rate**| 16.8 characters/second        |
+
 
 
 ## Podcast demo 
