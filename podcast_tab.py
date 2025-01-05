@@ -68,7 +68,7 @@ def create_podcast_dialogue_tab():
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
-def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, speed, selected_device, output_dir,load_model_and_voice):
+def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, speed, selected_device, output_dir,load_model_and_voice,process_type):
     """Generates audio segments for each dialogue entry in the podcast script."""
     audio_files = []
     for i, entry in enumerate(podcast_script):
@@ -99,7 +99,7 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
                 voice_name=voice,
                 selected_device=selected_device,
                 speed=speed,
-                is_long_text=False,
+                is_long_text=process_type,
                 load_model_and_voice=load_model_and_voice,
                 
                 
@@ -235,13 +235,17 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
                 #! --------------------------------------------
                 #! --------------------------------------------
                 #! --------------------------------------------
+                process_type = gr.Checkbox(
+                    label="Process each speech as Long Text",
+                    value=True
+                )
                 load_hosters_button = gr.Button("load hosters from json")
                 generate_podcast_audio_button = gr.Button("Generate Podcast Audio")
 
             with gr.Column():
                 podcast_audio_output = gr.Audio(label="Podcast Audio")
                 podcast_audio_status_output = gr.Textbox(label="Status", value="Ready")
-        def generate_podcast_audio_process(podcast_script_json, model, speed, device):
+        def generate_podcast_audio_process(podcast_script_json, model, speed, device,process_type):
             try:
                 if not podcast_script_json or "script" not in podcast_script_json:
                     raise ValueError("Please provide a podcast script.")
@@ -261,7 +265,7 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
                 
                 temp_dir = tempfile.mkdtemp()
                 audio_files = generate_podcast_audio_segments(
-                    podcast_script, host_voice_map, model, speed, device, temp_dir, load_model_and_voice,
+                    podcast_script, host_voice_map, model, speed, device, temp_dir, load_model_and_voice,process_type
                 )
                 output_file = os.path.join(temp_dir, f"podcast_{uuid.uuid4()}.mp3")
                 podcast_audio_path = merge_podcast_audio(audio_files, output_file)
@@ -318,7 +322,7 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
 
         generate_podcast_audio_button.click(
             generate_podcast_audio_process,
-            inputs=[podcast_script_json_input, podcast_model_dropdown, podcast_speed_slider, podcast_device_dropdown],
+            inputs=[podcast_script_json_input, podcast_model_dropdown, podcast_speed_slider, podcast_device_dropdown,process_type],
             outputs=[podcast_audio_output, podcast_audio_status_output]
         )
 
