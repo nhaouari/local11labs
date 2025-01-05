@@ -3,7 +3,6 @@ import gradio as gr
 import uuid
 import json
 from podcast_generator import generate_podcast_script
-from src.long_speech_generation import generate_long_text_optimized, convert_to_mp3
 from src.podcast_generation import merge_audio_files
 from src.utils import read_file_content, generate_audio_enhanced
 import os
@@ -59,15 +58,7 @@ def create_podcast_dialogue_tab():
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
+
 def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, speed, selected_device, output_dir,load_model_and_voice,process_type):
     """Generates audio segments for each dialogue entry in the podcast script."""
     audio_files = []
@@ -79,19 +70,10 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
             raise ValueError(f"No voice configured for host: {host}")
 
         voice = voice_config['voice']
-        lang = voice_config['lang']
+        # lang = voice_config['lang'] #lang takes the first letter of the voice name 
 
-        model, voice_data = load_model_and_voice(selected_device, model_name, voice)        
+               
         try:
-            # Generate audio and explicitly save WAV file
-            # audio, phonemes, wav_path = generate_long_text_optimized(
-            #     model=model,
-            #     text=dialogue,
-            #     voicepack=voice_data,
-            #     lang=lang,
-            #     output_dir=output_dir,
-            #     verbose=False
-            # )
             
             audio, phonemes, wav_path = generate_audio_enhanced(
                 text=dialogue,
@@ -108,12 +90,7 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
             # Ensure WAV file exists before converting
             #the merge func seems using wav not mp3 , so ill let the convert after the merge
             if os.path.exists(wav_path):
-                audio_files.append((i,wav_path))                
-                # mp3_path = convert_to_mp3(wav_path)
-                # if mp3_path and os.path.exists(mp3_path):
-                #     audio_files.append((i,mp3_path)) #this takes tube i,mp3_path cz for loop in the merge function  takes i, (index, file) from enumerate so i add it to fix toomany value too many values to unpack (expected 2) etc..
-                # else:
-                #     print(f"Failed to create MP3 for segment {i}")
+                audio_files.append((i,wav_path)) #merge function  takes i, (index, file) from enumerate  it shoulde stay tuble (index,file)              
             else:
                 print(f"WAV file not found for segment {i}: {wav_path}")
                 
@@ -123,20 +100,6 @@ def generate_podcast_audio_segments(podcast_script, host_voice_map, model_name, 
 
     return audio_files
 
-def merge_podcast_audio(audio_files, output_path):
-    """Merges the generated audio segments into a single podcast file."""
-    try:
-        if not audio_files:
-            raise ValueError("No audio files to merge")
-            
-            
-        merge_audio_files(audio_files, output_file=output_path)
-        return output_path
-    except Exception as e:
-        print(f"Error MPA: {str(e)}")
-        return None
-
-#! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
@@ -175,11 +138,9 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
                     value="auto"
                 )
                 hosts_state =gr.State([])
-                voice_components=[]
                 @gr.render(inputs=hosts_state)
                 def render_host_voice_assignment_inputs(hosts):
-                    voice_components.clear()
-                    with gr.Column() as column:  # Create a new column container
+                    with gr.Column() :  
                         for host in hosts:
                             dropdown = gr.Dropdown(
                                 list(choices.items()), 
@@ -210,7 +171,6 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
                 
                     
                 def update_host_voice_assignment_inputs(podcast_script_json):
-                    voice_components = []
                     hosts_g = []
                     podcast_host_voice_assignment_inputs.clear()
 
@@ -271,7 +231,16 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
                     podcast_script, host_voice_map, model, speed, device, output_dir, load_model_and_voice,process_type
                 )
                 output_file = os.path.join(output_dir, f"podcast_{uuid.uuid4()}.mp3")
-                podcast_audio_path = merge_podcast_audio(audio_files, output_file)
+                
+                # Merge audio files directly
+                try:
+                    if not audio_files:
+                        raise ValueError("No audio files to merge")
+                    merge_audio_files(audio_files, output_file=output_file)
+                    podcast_audio_path = output_file
+                except Exception as e:
+                    print(f"Error merging audio files: {str(e)}")
+                    podcast_audio_path = None
 
                 return podcast_audio_path, "Podcast audio generation complete!"
             except Exception as e:
@@ -349,15 +318,7 @@ def create_podcast_audio_tab(models_list, choices, device_options, kokoro_path,l
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
 #! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
-#! ------------------------------------------------------------------
+
 def create_podcast_tab(models_list, choices, device_options, kokoro_path, load_model_and_voice):
     with gr.Tab("Podcast"):
       
