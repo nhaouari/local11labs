@@ -59,16 +59,8 @@ def get_optimal_batch_size() -> int:
     optimal_batch_size = max(4, min(32, int((free_memory * safety_margin) / estimated_chunk_memory)))
     return optimal_batch_size
 
-def parallel_text_chunking(text: str, max_chars: Optional[int] = None) -> List[str]:
+def parallel_text_chunking(text: str, max_chars: int = 450) -> List[str]:
     """Split text into larger chunks for better GPU utilization."""
-    if max_chars is None:
-        if device == 'cuda':
-            # Much larger chunks for GPU processing
-            free_memory = torch.cuda.memory_reserved(0) - torch.cuda.memory_allocated(0)
-            max_chars = min(3000, max(800, int(free_memory / (1024 * 1024 * 5))))
-        else:
-            max_chars = 450
-
     # Split on paragraph boundaries first
     paragraphs = text.split('\n\n')
 
